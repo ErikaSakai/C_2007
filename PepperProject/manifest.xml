@@ -1,18 +1,18 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<package uuid="pepperproject-615dd1" version="0.0.0">
+<package version="0.0.0" uuid="untitled-6bdc86">
  <names>
   <name lang="en_US">Untitled</name>
  </names>
  <supportedLanguages>
-  <language>en_US</language>
+  <language>ja_JP</language>
  </supportedLanguages>
  <descriptionLanguages>
-  <language>en_US</language>
+  <language>ja_JP</language>
  </descriptionLanguages>
  <contents>
   <behaviorContent path="behavior_1">
    <userRequestable/>
-   <nature></nature>
+   <nature>interactive</nature>
    <triggerSentences/>
    <loadingResponses/>
    <autonomous/>

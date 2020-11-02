@@ -1,0 +1,12 @@
+azure-core==1.7.0
+azure-iot-device==2.1.4
+azure-storage-blob==12.3.2
+azure-batch
+azure-mgmt-storage
+azure-iot-hub
+azure-iothub-device-client
+azure-iothub-service-client
+Flask==1.1.2
+line-bot-sdk==1.16.0
+pylint==2.4.3
+requests==2.24.0

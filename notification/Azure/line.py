@@ -16,10 +16,11 @@ from linebot.models import (
 from azure.storage.blob import BlobServiceClient
 from azure.cosmosdb.table.tableservice import TableService
 
+# ユーザ定義モジュール
+import azure
+
 # LINEBOTAPIのURL
 URL = "https://api.line.me/v2/bot/message/multicast"
-
-app = Flask(__name__)
 
 # LINE Messaging API
 channel_secret = os.getenv('LINE_CHANNEL_SECRET', None)
@@ -42,12 +43,19 @@ AZURE_TABLENAME_TRAKINGNUMBER = 'TrackingNumber'
 if channel_secret is None:
     print('Specify LINE_CHANNEL_SECRET as environment variable.')
     sys.exit(1)
+    
 if channel_access_token is None:
     print('Specify LINE_CHANNEL_ACCESS_TOKEN as environment variable.')
     sys.exit(1)
 
+app = Flask(__name__)
+
+# LINE APIに接続するやつ
 line_bot_api = LineBotApi(channel_access_token)
 handler = WebhookHandler(channel_secret)
+
+# Azure Table Serviceに接続するやつ
+table_service = TableService(account_name=STORAGE_NAME, account_key=STORAGE_KEY)
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -73,7 +81,7 @@ def callback():
 
     return 'OK'
 
-def replyMessageText(event, message):
+def replyMessageText(event, message: str):
     '''
     LINEメッセージを応答
     :message:応答として送信したいメッセージの文字列
@@ -112,7 +120,7 @@ def replyImage(event):
 
     line_bot_api.reply_message(event.reply_token, image_message)
 
-def HandleMessageEventSwitch(event, getMessage):
+def HandleMessageEventSwitch(event, getMessage: str):
     '''
     取得したメッセージから応答処理を実行
     :getMessage: 受信したメッセージ
@@ -148,19 +156,92 @@ def DownloadFlomBlob(targetfile,filepath):
     with open(filepath, "wb") as my_blob:
         my_blob.writelines([blob_client.download_blob().readall()])
 
-def upload_to_tablestrage(tracking_number):
+def upload_to_tablestrage(userid="null": str,tracking_number: str):
     '''
     Azure Table Strageへ追跡番号をアップロード
     :tracking_number: 追跡番号　String型文字列
     :return:
     '''
-    pass
+    data = {
+            # 必須のキー情報,user_idをSHA256でハッシュ化
+            'PartitionKey': hashlib.sha256(userid+tracking_number).hexdigest(),
+            # 必須のキー情報，ユーザID
+            'RowKey': userid,
+            # 追跡番号
+            'number': tracking_number,
+        }
 
+    table_service.insert_or_replace_entity(
+        AZURE_TABLENAME_TRAKINGNUMBER,
+        data,
+        timeout=None
+    )
+
+@api.route('/trackingnumber/registration', methods=['POST'])
+def trackingnumber_registration():
+    try:
+        data = {
+            # 必須のキー情報,user_idをSHA256でハッシュ化
+            'PartitionKey': hashlib.sha256(request.form["user_id"]+request.form["trackingnumber"]).hexdigest(),
+            # 必須のキー情報，ユーザID
+            'RowKey': request.form["help_id"],
+            # 追跡番号
+            'number': request.form["trackingnumber"],
+        }
+
+        # 追跡番号情報をATSへ追加
+        table_service.insert_or_replace_entity(AZURE_TABLENAME_TRAKINGNUMBER, data)
+        print("send data to ATS")
+
+        result = {
+                "result":True,
+                "data":{
+                    "helpId":userdata['RowKey'],
+                    "help_hash":userdata["PartitionKey"]
+                    }
+                }
+
+    except Exception as except_var:
+        print("except:"+except_var)
+        abort(500)
+
+    return make_response(jsonify(result))
+
+@api.route('/trackingnumber/get', methods=['GET'])
+def get_trackingnumber():
+    '''
+    追跡番号の問い合わせ
+    :return:
+    '''
+    try:
+        # クエリ文字列から検索するエリアを指定
+        # http://address/trackingnumber/get?number=123456789
+        requested_trackingnumber = request.args.get('number')
+
+        # テーブルから検索
+        result = table_service.query_entities(
+            table_name=AZURE_TABLENAME_TRAKINGNUMBER,
+            filter="places eq " + requested_trackingnumber
+        )
+
+        if len(result) == 1:
+            result = {
+                "result":True,
+            }
+        else:
+            result = {
+                "result":False,
+            }
+
+    except Exception as except_var:
+        print("except:"+except_var)
+        abort(500)
+
+    return make_response(jsonify(result))
 
 '''
 メインサービス
 '''
 if __name__ == "__main__":
-    # app.run()
     port = int(os.getenv("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

@@ -19,43 +19,40 @@ from azure.cosmosdb.table.tableservice import TableService
 # ユーザ定義モジュール
 import azure
 
-# LINEBOTAPIのURL
-URL = "https://api.line.me/v2/bot/message/multicast"
-
 # LINE Messaging API
-channel_secret = os.getenv('LINE_CHANNEL_SECRET', None)
-channel_access_token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', None)
+LINE_CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', None)
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', None)
 
-main_image_path = os.getenv('MAIN_IMAGE', None)
-preview_image_path = os.getenv('PREVIEW_IMAGE', None)  # ダミー
+# LINEで表示する画像のURL
+MAIN_IMAGE_PATH = os.getenv('MAIN_IMAGE', None)
+PREVIEW_IMAGE_PATH = os.getenv('PREVIEW_IMAGE', None)  # ダミー
 
-# Azure Storage Containerの名前
-CONTAINER_NAME = os.getenv('CONTAINER_NAME', None)
-# Azure Storage Containerの接続文字列
+# Azure Storage Containerの名前，接続文字列
+AZURE_CONTAINER_NAME = os.getenv('CONTAINER_NAME', None)
 AZURE_STORAGE_CONTAINER_CONNECTION_STRING = os.getenv('ASC_CONNECTION_STRING', None)
 
 # Azure Table Strageの名前，アクセスキー
-STORAGE_KEY = os.getenv('AZURE_STRAGE_KEY')
-STORAGE_NAME = os.getenv('AZURE_STRAGE_NAME')
+AZURE_STORAGE_KEY = os.getenv('AZURE_STRAGE_KEY')
+AZURE_STORAGE_NAME = os.getenv('AZURE_STRAGE_NAME')
 
-AZURE_TABLENAME_TRAKINGNUMBER = 'TrackingNumber'
+AZURE_TABLENAME_TRAKINGNUMBER = 'tracknumber'
 
 if channel_secret is None:
     print('Specify LINE_CHANNEL_SECRET as environment variable.')
     sys.exit(1)
 
-if channel_access_token is None:
+if LINE_CHANNEL_ACCESS_TOKEN is None:
     print('Specify LINE_CHANNEL_ACCESS_TOKEN as environment variable.')
     sys.exit(1)
 
 app = Flask(__name__)
 
 # LINE APIに接続するやつ
-line_bot_api = LineBotApi(channel_access_token)
-handler = WebhookHandler(channel_secret)
+line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
+handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
 # Azure Table Serviceに接続するやつ
-table_service = TableService(account_name=STORAGE_NAME, account_key=STORAGE_KEY)
+table_service = TableService(account_name=AZURE_STORAGE_NAME, account_key=AZURE_STORAGE_KEY)
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -114,8 +111,8 @@ def replyImage(event):
     ...
     # 画像の送信
     image_message = ImageSendMessage(
-        original_content_url=main_image_path,
-        preview_image_url=main_image_path
+        original_content_url=MAIN_IMAGE_PATH,
+        preview_image_url=MAIN_IMAGE_PATH
     )
 
     line_bot_api.reply_message(event.reply_token, image_message)
@@ -151,7 +148,7 @@ def DownloadFlomBlob(targetfile,filepath):
     :return:
     '''
     blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONTAINER_CONNECTION_STRING)
-    blob_client = blob_service_client.get_blob_client(container=CONTAINER_NAME, blob=targetfile)
+    blob_client = blob_service_client.get_blob_client(container=AZURE_CONTAINER_NAME, blob=targetfile)
 
     with open(filepath, "wb") as my_blob:
         my_blob.writelines([blob_client.download_blob().readall()])

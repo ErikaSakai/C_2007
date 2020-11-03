@@ -1,0 +1,104 @@
+@charset "UTF-8";
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Avenir','Helvetica Neue','Helvetica','Arial','Hiragino Sans','ヒラギノ角ゴシック',YuGothic,'Yu Gothic','メイリオ', Meiryo,'ＭＳ Ｐゴシック','MS PGothic';
+  margin: 20px auto;
+  width: 1000px;
+  font-size: 24px;
+}
+
+.cp_iptxt {
+  position: relative;
+  width: 80%;
+  margin: 40px 3%;
+}
+
+.cp_iptxt input[type='text'] {
+  font-size: 24px;
+  box-sizing: border-box;
+  width: 100%;
+  letter-spacing: 1px;
+  padding-left: 4em;
+}
+
+.cp_iptxt input[type='text']:focus {
+  outline: none;
+}
+
+.ef {
+  padding: 4px 0;
+  border: 0;
+  border-bottom: 1px solid #1b2538;
+  background-color: transparent;
+}
+
+.ef ~ .focus_line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  transition: 0.4s;
+  background-color: #da3c41;
+}
+
+.ef:focus ~ .focus_line,
+.cp_iptxt.ef ~ .focus_line {
+  width: 100%;
+  transition: 0.4s;
+}
+
+.ef ~ label {
+  position: absolute;
+  z-index: -1;
+  top: 4px;
+  left: 0;
+  width: 100%;
+  transition: 0.3s;
+  letter-spacing: 0.5px;
+  color: #aaaaaa;
+}
+
+.ef:focus ~ label, .cp_iptxt.ef ~ label {
+  font-size: 12px;
+  top: -16px;
+  transition: 0.3s;
+  color: #da3c41;
+}
+
+input{
+  border: none;
+  background: none;
+  -webkit-appearance: none;
+}
+
+.btn-square {
+  display: inline-block;
+  padding: 0.5em 1em;
+  text-decoration: none;
+  background: #668ad8;
+  text-align: center;
+  border-bottom: solid 4px #627295;
+  border-radius: 3px;
+  width: 78%;
+  margin-left: 20px;
+}
+
+.btn-square input {
+  text-align: center;
+  color: #FFF;
+  font-size: 24px;
+}
+
+.btn-square:hover {
+  -webkit-transform: translateY(4px);
+  transform: translateY(4px);
+  border-bottom: none;
+}
+
+

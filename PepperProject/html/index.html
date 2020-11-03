@@ -1,27 +1,34 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<meta charset="utf-8"/>
-		<title>配達番号入力フォーム</title>
-		<script src="/libs/qimessaging/1.0/qimessaging.js"></script>
-	</head>
-	<body>
-		<form id="form1" action="#">
-			<p>
-				配達番号：
-				<input type="text" id="input_message" value="">
-				<input type="button" onclick="func()" value="OK">
-			</p>
-		</form>
-		<script>
-			var session = new QiSession();
-			function func() {
-				var input_message = document.getElementById("input_message").value;
-				session.service("ALMemory").done(function (ALMemory) {
-					console.log("ALMemory取得成功");
-					ALMemory.raiseEvent("PepperQiMessaging/fromtablet", input_message);	
-				});
-			}
-		</script>
-	</body>
+  <head>
+    <meta charset="utf-8"/>
+    <title>配達番号入力フォーム</title>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <script src="/libs/qimessaging/1.0/qimessaging.js"></script>
+  </head>
+  <body>
+    <header>
+      <p>配達番号を入力してください</p>
+    </header>
+    <main>
+      <form id="form1" action="#">
+        <div class="cp_iptxt">
+          <input id="input_message" class="ef" type="text" placeholder="" value="">
+          <label>配達番号</label>
+          <span class="focus_line"></span>
+        </div>
+        <div class="btn-square"><input type="button" onclick="func()" value="OK"></div>
+      </form>
+    </main>
+    <script>
+      var session = new QiSession();
+      function func() {
+        var input_message = document.getElementById("input_message").value;
+        session.service("ALMemory").done(function (ALMemory) {
+          console.log("ALMemory取得成功");
+          ALMemory.raiseEvent("PepperQiMessaging/fromtablet", input_message);
+        });
+      }
+    </script>
+  </body>
 </html>

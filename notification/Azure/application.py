@@ -78,7 +78,7 @@ def callback():
 
     return 'OK'
 
-def replyMessageText(event, message: str):
+def replyMessageText(event, message):
     '''
     LINEメッセージを応答
     :message:応答として送信したいメッセージの文字列
@@ -117,7 +117,7 @@ def replyImage(event):
 
     line_bot_api.reply_message(event.reply_token, image_message)
 
-def HandleMessageEventSwitch(event, getMessage: str):
+def HandleMessageEventSwitch(event, getMessage):
     '''
     取得したメッセージから応答処理を実行
     :getMessage: 受信したメッセージ
@@ -153,7 +153,7 @@ def DownloadFlomBlob(targetfile,filepath):
     with open(filepath, "wb") as my_blob:
         my_blob.writelines([blob_client.download_blob().readall()])
 
-def upload_to_tablestrage(userid="null": str,tracking_number: str):
+def upload_to_tablestrage(userid="null",tracking_number):
     '''
     Azure Table Strageへ追跡番号をアップロード
     :tracking_number: 追跡番号　String型文字列
@@ -239,5 +239,6 @@ def get_trackingnumber():
 メインサービス
 '''
 if __name__ == "__main__":
+    print ("running porchman")
     port = int(os.getenv("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

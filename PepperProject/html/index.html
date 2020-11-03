@@ -29,6 +29,16 @@
           ALMemory.raiseEvent("PepperQiMessaging/fromtablet", input_message);
         });
       }
+      function startSubscribe() {
+        session.service("ALMemory").done(function (ALMemory) {
+          console.log("ALMemory取得成功");
+          alert("番号が違います");
+          ALMemory.subscriber("PepperQiMessaging/totablet").done(function(subscriber) {
+            subscriber.signal.connect(toTabletHandler);
+          });
+        });
+      }
+
     </script>
   </body>
 </html>

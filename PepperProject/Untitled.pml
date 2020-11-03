@@ -2,7 +2,7 @@
 <Package name="Untitled" format_version="4">
     <Manifest src="manifest.xml" />
     <BehaviorDescriptions>
-        <BehaviorDescription name="behavior" src="behavior_1" xar="behavior.xar" />
+        <BehaviorDescription name="behavior" src="." xar="behavior.xar" />
     </BehaviorDescriptions>
     <Dialogs />
     <Resources>
@@ -26,6 +26,7 @@
         <File name="status_codes" src="lib/requests/status_codes.py" />
         <File name="structures" src="lib/requests/structures.py" />
         <File name="utils" src="lib/requests/utils.py" />
+        <File name="style" src="html/style.css" />
     </Resources>
     <Topics />
     <IgnoredPaths />

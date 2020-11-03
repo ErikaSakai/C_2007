@@ -43,7 +43,7 @@ AZURE_TABLENAME_TRAKINGNUMBER = 'TrackingNumber'
 if channel_secret is None:
     print('Specify LINE_CHANNEL_SECRET as environment variable.')
     sys.exit(1)
-    
+
 if channel_access_token is None:
     print('Specify LINE_CHANNEL_ACCESS_TOKEN as environment variable.')
     sys.exit(1)
@@ -129,7 +129,7 @@ def HandleMessageEventSwitch(event, getMessage: str):
 
     if str.isdecimal(getMessage):
         upload_to_tablestrage(getMessage)
-        message = '追跡番号を登録しました．'
+        message = '追跡番号('+getMessage+')を登録しました．'
 
     elif getMessage == '追跡番号':
         message = '追跡番号を入力してください．'
@@ -182,11 +182,11 @@ def trackingnumber_registration():
     try:
         data = {
             # 必須のキー情報,user_idをSHA256でハッシュ化
-            'PartitionKey': hashlib.sha256(request.form["user_id"]+request.form["trackingnumber"]).hexdigest(),
-            # 必須のキー情報，ユーザID
-            'RowKey': request.form["help_id"],
+            'PartitionKey': hashlib.sha256(request.form["trackingnumber"]).hexdigest(),
+            # 必須のキー情報，今回は使用しない
+            'RowKey': "pepper",
             # 追跡番号
-            'number': request.form["trackingnumber"],
+            'number': request.form["trackId"],
         }
 
         # 追跡番号情報をATSへ追加
@@ -196,8 +196,7 @@ def trackingnumber_registration():
         result = {
                 "result":True,
                 "data":{
-                    "helpId":userdata['RowKey'],
-                    "help_hash":userdata["PartitionKey"]
+                    "hash":userdata["PartitionKey"]
                     }
                 }
 

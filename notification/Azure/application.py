@@ -153,7 +153,7 @@ def DownloadFlomBlob(targetfile,filepath):
     with open(filepath, "wb") as my_blob:
         my_blob.writelines([blob_client.download_blob().readall()])
 
-def upload_to_tablestrage(userid="null",tracking_number):
+def upload_to_tablestrage(tracking_number, userid="null"):
     '''
     Azure Table Strageへ追跡番号をアップロード
     :tracking_number: 追跡番号　String型文字列

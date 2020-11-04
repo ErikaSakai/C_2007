@@ -179,7 +179,7 @@ def upload_to_tablestrage(tracking_number, userid="null"):
     '''
     data = {
         # 必須のキー情報,user_idをSHA256でハッシュ化
-        'PartitionKey': hashlib.sha256(userid+tracking_number).hexdigest(),
+        'PartitionKey': tracking_number,
         # 必須のキー情報，ユーザID
         'RowKey': userid,
         # 追跡番号

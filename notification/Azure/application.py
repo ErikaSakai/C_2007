@@ -1,9 +1,13 @@
+'''
+Azureで実行するファイル
+'''
 import sys
 import os
+import hashlib
 import requests
 import json
 
-from flask import Flask, request, abort
+from flask import Flask, abort, jsonify, make_response, request
 from linebot import (
     LineBotApi, WebhookHandler
 )
@@ -11,13 +15,13 @@ from linebot.exceptions import (
     LineBotApiError, InvalidSignatureError
 )
 from linebot.models import (
-    MessageEvent, TextMessage, TextSendMessage, ImageSendMessage, ImageMessage
+    MessageEvent, TextMessage, TextSendMessage, ImageSendMessage
 )
 from azure.storage.blob import BlobServiceClient
 from azure.cosmosdb.table.tableservice import TableService
 
 # ユーザ定義モジュール
-import azure
+# import azure
 
 # LINE Messaging API
 LINE_CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', None)
@@ -37,7 +41,7 @@ AZURE_STORAGE_NAME = os.getenv('AZURE_STRAGE_NAME')
 
 AZURE_TABLENAME_TRAKINGNUMBER = 'tracknumber'
 
-if channel_secret is None:
+if LINE_CHANNEL_SECRET is None:
     print('Specify LINE_CHANNEL_SECRET as environment variable.')
     sys.exit(1)
 
@@ -45,16 +49,16 @@ if LINE_CHANNEL_ACCESS_TOKEN is None:
     print('Specify LINE_CHANNEL_ACCESS_TOKEN as environment variable.')
     sys.exit(1)
 
-app = Flask(__name__)
+APP = Flask(__name__)
 
 # LINE APIに接続するやつ
-line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
-handler = WebhookHandler(LINE_CHANNEL_SECRET)
+LINE_BOT_API = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
+HANDLER = WebhookHandler(LINE_CHANNEL_SECRET)
 
 # Azure Table Serviceに接続するやつ
-table_service = TableService(account_name=AZURE_STORAGE_NAME, account_key=AZURE_STORAGE_KEY)
+TABLE_SERVICE = TableService(account_name=AZURE_STORAGE_NAME, account_key=AZURE_STORAGE_KEY)
 
-@app.route("/callback", methods=['POST'])
+@APP.route("/callback", methods=['POST'])
 def callback():
     '''
     LINEサーバへWebhookリクエストをチェック(認証)
@@ -63,51 +67,52 @@ def callback():
     signature = request.headers['X-Line-Signature']
 
     body = request.get_data(as_text=True)
-    app.logger.info("Request body: " + body)
+    # APP.logger.info("Request body: " + body)
 
     #署名を検証
     try:
-        handler.handle(body, signature)
-    except LineBotApiError as e:
-        print("Got exception from LINE Messaging API: %s\n" % e.message)
-        for m in e.error.details:
-            print("  %s: %s" % (m.property, m.message))
+        HANDLER.handle(body, signature)
+
+    except LineBotApiError as except_msg:
+        print("Got exception from LINE Messaging API: %s\n" % except_msg.message)
+        for message in except_msg.error.details:
+            print("  %s: %s" % (message.property, message.message))
         print("\n")
     except InvalidSignatureError:
         abort(400)
 
     return 'OK'
 
-def replyMessageText(event, message):
+def reply_message_text(event, message):
     '''
     LINEメッセージを応答
     :message:応答として送信したいメッセージの文字列
     :return:
     '''
-    line_bot_api.reply_message(
+    LINE_BOT_API.reply_message(
         event.reply_token,
         TextSendMessage(text=message)  # 返信メッセージ
     )
 
-@handler.add(MessageEvent, message=TextMessage)
+@HANDLER.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     '''
     ユーザが送信したLINEメッセージを取得
     :return:メッセージの内容
     '''
-    getMessage = event.message.text  # ユーザが送信したメッセージ(event.message.text)を取得
+    # ユーザが送信したメッセージ(event.message.text)を取得
+    get_message = event.message.text
 
     #message = HandleMessageEventSwitch(event, getMessage)
     #replyMessageText(event, message)
-    return getMessage
+    return get_message
 
-
-#@handler.add(MessageEvent, message=ImageMessage)
-def replyImage(event):
+#@HANDLER.add(MessageEvent, message=ImageMessage)
+def reply_image(event):
     '''
     画像の返信　URLを指定する
     :return:
-    '''    
+    '''
     ...
     # 画像の送信
     image_message = ImageSendMessage(
@@ -115,40 +120,45 @@ def replyImage(event):
         preview_image_url=MAIN_IMAGE_PATH
     )
 
-    line_bot_api.reply_message(event.reply_token, image_message)
+    LINE_BOT_API.reply_message(event.reply_token, image_message)
 
-def HandleMessageEventSwitch(event, getMessage):
+def handle_message_event_switch(event, get_message):
     '''
     取得したメッセージから応答処理を実行
-    :getMessage: 受信したメッセージ
+    :get_message: 受信したメッセージ
     :return:応答メッセージ
     '''
 
-    if str.isdecimal(getMessage):
-        upload_to_tablestrage(getMessage)
-        message = '追跡番号('+getMessage+')を登録しました．'
+    if str.isdecimal(get_message):
+        upload_to_tablestrage(get_message)
+        message = '追跡番号('+get_message+')を登録しました．'
 
-    elif getMessage == '追跡番号':
+    elif get_message == '追跡番号':
         message = '追跡番号を入力してください．'
 
-    elif getMessage == '状態':
-        replyImage(event)
+    elif get_message == '状態':
+        reply_image(event)
         message = '最近の写真を表示します．'
 
-    else :
+    else:
         message = 'お客様がお望みなら、いつでもお荷物を受け取ります。\n宅配便代理受け取りサービス、ポーチマンです。'
 
     return message
 
-def DownloadFlomBlob(targetfile,filepath):
+def download_flom_blob(target_file, filepath):
     '''
     Azure BLOBからファイルをダウンロード
     :param targetfile: ダウンロードするファイル
     :param filepath: 保存先
     :return:
     '''
-    blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONTAINER_CONNECTION_STRING)
-    blob_client = blob_service_client.get_blob_client(container=AZURE_CONTAINER_NAME, blob=targetfile)
+    blob_service_client = BlobServiceClient.from_connection_string(
+        AZURE_STORAGE_CONTAINER_CONNECTION_STRING
+        )
+    blob_client = blob_service_client.get_blob_client(
+        container=AZURE_CONTAINER_NAME,
+        blob=target_file
+        )
 
     with open(filepath, "wb") as my_blob:
         my_blob.writelines([blob_client.download_blob().readall()])
@@ -160,22 +170,27 @@ def upload_to_tablestrage(tracking_number, userid="null"):
     :return:
     '''
     data = {
-            # 必須のキー情報,user_idをSHA256でハッシュ化
-            'PartitionKey': hashlib.sha256(userid+tracking_number).hexdigest(),
-            # 必須のキー情報，ユーザID
-            'RowKey': userid,
-            # 追跡番号
-            'number': tracking_number,
-        }
+        # 必須のキー情報,user_idをSHA256でハッシュ化
+        'PartitionKey': hashlib.sha256(userid+tracking_number).hexdigest(),
+        # 必須のキー情報，ユーザID
+        'RowKey': userid,
+        # 追跡番号
+        'number': tracking_number,
+    }
 
-    table_service.insert_or_replace_entity(
+    TABLE_SERVICE.insert_or_replace_entity(
         AZURE_TABLENAME_TRAKINGNUMBER,
         data,
         timeout=None
     )
 
-@api.route('/trackingnumber/registration', methods=['POST'])
-def trackingnumber_registration():
+@APP.route('/trackingnumber/registration', methods=['POST'])
+def tracking_number_registration():
+    '''
+    Pepperに入力された追跡番号をPOSTで取得
+    :tracking_number: 追跡番号　String型文字列
+    :return:
+    '''
     try:
         data = {
             # 必須のキー情報,user_idをSHA256でハッシュ化
@@ -187,15 +202,15 @@ def trackingnumber_registration():
         }
 
         # 追跡番号情報をATSへ追加
-        table_service.insert_or_replace_entity(AZURE_TABLENAME_TRAKINGNUMBER, data)
+        TABLE_SERVICE.insert_or_replace_entity(AZURE_TABLENAME_TRAKINGNUMBER, data)
         print("send data to ATS")
 
         result = {
-                "result":True,
-                "data":{
-                    "hash":userdata["PartitionKey"]
-                    }
-                }
+            "result":True,
+            "data":{
+                "hash":data["PartitionKey"]
+            }
+        }
 
     except Exception as except_var:
         print("except:"+except_var)
@@ -203,7 +218,7 @@ def trackingnumber_registration():
 
     return make_response(jsonify(result))
 
-@api.route('/trackingnumber/get', methods=['GET'])
+@APP.route('/trackingnumber/get', methods=['GET'])
 def get_trackingnumber():
     '''
     追跡番号の問い合わせ
@@ -215,7 +230,7 @@ def get_trackingnumber():
         requested_trackingnumber = request.args.get('number')
 
         # テーブルから検索
-        result = table_service.query_entities(
+        result = TABLE_SERVICE.query_entities(
             table_name=AZURE_TABLENAME_TRAKINGNUMBER,
             filter="places eq " + requested_trackingnumber
         )
@@ -239,6 +254,7 @@ def get_trackingnumber():
 メインサービス
 '''
 if __name__ == "__main__":
-    print ("running porchman")
-    port = int(os.getenv("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    print("running porchman")
+    # PORT = int(os.getenv("PORT", 5000))
+    PORT = 5000
+    APP.run(host="0.0.0.0", port=PORT)

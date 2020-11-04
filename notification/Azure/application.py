@@ -27,7 +27,7 @@ from azure.cosmosdb.table.tableservice import TableService
 LINE_CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', None)
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', None)
 
-# LINEで表示する画像のURL
+# LINEで表示する画像のURL,コア部分のみ
 MAIN_IMAGE_PATH = os.getenv('MAIN_IMAGE', None)
 PREVIEW_IMAGE_PATH = os.getenv('PREVIEW_IMAGE', None)  # ダミー
 
@@ -177,55 +177,30 @@ def upload_to_tablestrage(tracking_number, userid="null"):
     :tracking_number: 追跡番号　String型文字列
     :return:
     '''
-    data = {
-        # 必須のキー情報,user_idをSHA256でハッシュ化
-        'PartitionKey': tracking_number,
-        # 必須のキー情報，ユーザID
-        'RowKey': userid,
-        # 追跡番号
-        'number': tracking_number,
-    }
-
-    TABLE_SERVICE.insert_or_replace_entity(
-        AZURE_TABLENAME_TRAKINGNUMBER,
-        data,
-        timeout=None
-    )
-    return
-
-@app.route('/trackingnumber/registration', methods=['POST'])
-def tracking_number_registration():
-    '''
-    Pepperに入力された追跡番号をPOSTで取得
-    :tracking_number: 追跡番号　String型文字列
-    :return:
-    '''
     try:
+        prekey = str(userid) + str(tracking_number)
+
         data = {
             # 必須のキー情報,user_idをSHA256でハッシュ化
-            'PartitionKey': hashlib.sha256(request.form["trackingnumber"]).hexdigest(),
-            # 必須のキー情報，今回は使用しない
-            'RowKey': "pepper",
+            'PartitionKey': hashlib.sha256(prekey.encode()).hexdigest(),
+            # 必須のキー情報，ユーザID
+            'RowKey': userid,
             # 追跡番号
-            'number': request.form["trackId"],
+            'number': tracking_number,
         }
 
-        # 追跡番号情報をATSへ追加
-        TABLE_SERVICE.insert_or_replace_entity(AZURE_TABLENAME_TRAKINGNUMBER, data)
-        print("send data to ATS")
-
-        result = {
-            "result":True,
-            "data":{
-                "hash":data["PartitionKey"]
-            }
-        }
+        TABLE_SERVICE.insert_or_replace_entity(
+            AZURE_TABLENAME_TRAKINGNUMBER,
+            data,
+            timeout=None
+        )
+        return
 
     except Exception as except_var:
         print("except:"+except_var)
         abort(500)
 
-    return make_response(jsonify(result))
+    return
 
 @app.route('/trackingnumber/get', methods=['GET'])
 def get_trackingnumber():
@@ -235,8 +210,9 @@ def get_trackingnumber():
     '''
     try:
         # クエリ文字列から検索するエリアを指定
-        # http://address/trackingnumber/get?number=123456789
+        # https://porchman.azurewebsites.net/trackingnumber/get?number=<追跡番号>
         
+        # 型に注意 （文字列型で扱う）
         requested_trackingnumber = request.args.get('number')
 
         # テーブルから検索

@@ -4,8 +4,8 @@ Azureで実行するファイル
 import sys
 import os
 import hashlib
-import requests
-import json
+# import requests
+# import json
 
 from flask import Flask, abort, jsonify, make_response, request
 from linebot import (
@@ -15,7 +15,7 @@ from linebot.exceptions import (
     LineBotApiError, InvalidSignatureError
 )
 from linebot.models import (
-    MessageEvent, TextMessage, TextSendMessage, ImageSendMessage
+    MessageEvent, TextMessage, TextSendMessage, ImageSendMessage, ImageMessage
 )
 from azure.storage.blob import BlobServiceClient
 from azure.cosmosdb.table.tableservice import TableService
@@ -49,7 +49,7 @@ if LINE_CHANNEL_ACCESS_TOKEN is None:
     print('Specify LINE_CHANNEL_ACCESS_TOKEN as environment variable.')
     sys.exit(1)
 
-APP = Flask(__name__)
+app = Flask(__name__)
 
 # LINE APIに接続するやつ
 LINE_BOT_API = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
@@ -58,7 +58,7 @@ HANDLER = WebhookHandler(LINE_CHANNEL_SECRET)
 # Azure Table Serviceに接続するやつ
 TABLE_SERVICE = TableService(account_name=AZURE_STORAGE_NAME, account_key=AZURE_STORAGE_KEY)
 
-@APP.route("/callback", methods=['POST'])
+@app.route("/callback", methods=['POST'])
 def callback():
     '''
     LINEサーバへWebhookリクエストをチェック(認証)
@@ -67,7 +67,7 @@ def callback():
     signature = request.headers['X-Line-Signature']
 
     body = request.get_data(as_text=True)
-    # APP.logger.info("Request body: " + body)
+    # app.logger.info("Request body: " + body)
 
     #署名を検証
     try:
@@ -78,21 +78,11 @@ def callback():
         for message in except_msg.error.details:
             print("  %s: %s" % (message.property, message.message))
         print("\n")
+
     except InvalidSignatureError:
         abort(400)
 
     return 'OK'
-
-def reply_message_text(event, message):
-    '''
-    LINEメッセージを応答
-    :message:応答として送信したいメッセージの文字列
-    :return:
-    '''
-    LINE_BOT_API.reply_message(
-        event.reply_token,
-        TextSendMessage(text=message)  # 返信メッセージ
-    )
 
 @HANDLER.add(MessageEvent, message=TextMessage)
 def handle_message(event):
@@ -102,10 +92,25 @@ def handle_message(event):
     '''
     # ユーザが送信したメッセージ(event.message.text)を取得
     get_message = event.message.text
+    print('get message:' + get_message)
 
-    #message = HandleMessageEventSwitch(event, getMessage)
-    #replyMessageText(event, message)
-    return get_message
+    reply_message = handle_message_event_switch(event, get_message)
+    reply_message_text(event, reply_message)
+
+    return
+
+def reply_message_text(event, message):
+    '''
+    LINEメッセージを応答
+    :message:応答として送信したいメッセージの文字列
+    :return:
+    '''
+    print('send message' + message)
+    LINE_BOT_API.reply_message(
+        event.reply_token,
+        TextSendMessage(text=message)  # 返信メッセージ
+    )
+    return
 
 #@HANDLER.add(MessageEvent, message=ImageMessage)
 def reply_image(event):
@@ -121,6 +126,7 @@ def reply_image(event):
     )
 
     LINE_BOT_API.reply_message(event.reply_token, image_message)
+    return
 
 def handle_message_event_switch(event, get_message):
     '''
@@ -130,7 +136,7 @@ def handle_message_event_switch(event, get_message):
     '''
 
     if str.isdecimal(get_message):
-        upload_to_tablestrage(get_message)
+        upload_to_tablestrage(get_message, event.source.user_id)
         message = '追跡番号('+get_message+')を登録しました．'
 
     elif get_message == '追跡番号':
@@ -162,6 +168,8 @@ def download_flom_blob(target_file, filepath):
 
     with open(filepath, "wb") as my_blob:
         my_blob.writelines([blob_client.download_blob().readall()])
+    
+    return
 
 def upload_to_tablestrage(tracking_number, userid="null"):
     '''
@@ -183,8 +191,9 @@ def upload_to_tablestrage(tracking_number, userid="null"):
         data,
         timeout=None
     )
+    return
 
-@APP.route('/trackingnumber/registration', methods=['POST'])
+@app.route('/trackingnumber/registration', methods=['POST'])
 def tracking_number_registration():
     '''
     Pepperに入力された追跡番号をPOSTで取得
@@ -218,7 +227,7 @@ def tracking_number_registration():
 
     return make_response(jsonify(result))
 
-@APP.route('/trackingnumber/get', methods=['GET'])
+@app.route('/trackingnumber/get', methods=['GET'])
 def get_trackingnumber():
     '''
     追跡番号の問い合わせ
@@ -227,6 +236,7 @@ def get_trackingnumber():
     try:
         # クエリ文字列から検索するエリアを指定
         # http://address/trackingnumber/get?number=123456789
+        
         requested_trackingnumber = request.args.get('number')
 
         # テーブルから検索
@@ -255,6 +265,6 @@ def get_trackingnumber():
 '''
 if __name__ == "__main__":
     print("running porchman")
-    # PORT = int(os.getenv("PORT", 5000))
-    PORT = 5000
-    APP.run(host="0.0.0.0", port=PORT)
+    PORT = int(os.getenv("PORT", 5000))
+    app.run(host="0.0.0.0", port=PORT)
+    

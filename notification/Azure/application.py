@@ -2,10 +2,10 @@
 Azureで実行するファイル
 '''
 import sys
+import time
 import os
 import hashlib
-# import requests
-# import json
+import base64
 
 from flask import Flask, abort, jsonify, make_response, request
 from linebot import (
@@ -19,9 +19,6 @@ from linebot.models import (
 )
 from azure.storage.blob import BlobServiceClient
 from azure.cosmosdb.table.tableservice import TableService
-
-# ユーザ定義モジュール
-# import azure
 
 # LINE Messaging API
 LINE_CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', None)
@@ -41,14 +38,6 @@ AZURE_STORAGE_NAME = os.getenv('AZURE_STRAGE_NAME')
 
 AZURE_TABLENAME_TRAKINGNUMBER = 'tracknumber'
 
-if LINE_CHANNEL_SECRET is None:
-    print('Specify LINE_CHANNEL_SECRET as environment variable.')
-    sys.exit(1)
-
-if LINE_CHANNEL_ACCESS_TOKEN is None:
-    print('Specify LINE_CHANNEL_ACCESS_TOKEN as environment variable.')
-    sys.exit(1)
-
 app = Flask(__name__)
 
 # LINE APIに接続するやつ
@@ -57,6 +46,9 @@ HANDLER = WebhookHandler(LINE_CHANNEL_SECRET)
 
 # Azure Table Serviceに接続するやつ
 TABLE_SERVICE = TableService(account_name=AZURE_STORAGE_NAME, account_key=AZURE_STORAGE_KEY)
+# BLOCK_BLOB_SERVICE = BlockBlobService(account_name=AZURE_STORAGE_NAME, account_key=AZURE_STORAGE_KEY)
+
+BLOB_SERVICE_CLIENT = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONTAINER_CONNECTION_STRING)
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -119,10 +111,12 @@ def reply_image(event):
     :return:
     '''
     ...
+    lest_file_name = get_lest_filename_on_azure()
+
     # 画像の送信
     image_message = ImageSendMessage(
-        original_content_url=MAIN_IMAGE_PATH,
-        preview_image_url=MAIN_IMAGE_PATH
+        original_content_url=MAIN_IMAGE_PATH + lest_file_name,
+        preview_image_url=MAIN_IMAGE_PATH + lest_file_name
     )
 
     LINE_BOT_API.reply_message(event.reply_token, image_message)
@@ -168,8 +162,27 @@ def download_flom_blob(target_file, filepath):
 
     with open(filepath, "wb") as my_blob:
         my_blob.writelines([blob_client.download_blob().readall()])
-    
+
     return
+
+@app.route("/image/upload", methods=["POST"])
+def upload_to_blob():
+    '''
+    POSTされた画像をBLOBとしてアップロード
+    '''
+    userdata = {
+        'image_data': request.form["image"]
+    }
+    # print(userdata['image_data'])
+
+    img = base64.b64decode(userdata['image_data'].encode())
+
+    local_file_name = str(int(time.time())) + '.jpg'
+
+    blob_client = BLOB_SERVICE_CLIENT.get_blob_client(container=AZURE_CONTAINER_NAME, blob=local_file_name)
+    blob_client.upload_blob(img)
+
+    return 'OK'
 
 def upload_to_tablestrage(tracking_number, userid="null"):
     '''
@@ -202,7 +215,7 @@ def upload_to_tablestrage(tracking_number, userid="null"):
 
     return
 
-@app.route('/trackingnumber/get', methods=['GET'])
+@app.route('/trackingnumber/get', methods=['POST'])
 def get_trackingnumber():
     '''
     追跡番号の問い合わせ
@@ -211,9 +224,9 @@ def get_trackingnumber():
     try:
         # クエリ文字列から検索するエリアを指定
         # https://porchman.azurewebsites.net/trackingnumber/get?number=<追跡番号>
-        
+
         # 型に注意 （文字列型で扱う）
-        requested_trackingnumber = request.args.get('number')
+        requested_trackingnumber = request.form["image"]
 
         # テーブルから検索
         result = TABLE_SERVICE.query_entities(
@@ -235,6 +248,26 @@ def get_trackingnumber():
         abort(500)
 
     return make_response(jsonify(result))
+
+def get_lest_filename_on_azure():
+    '''
+    Blobから最新のファイル名を取得．ファイル名はエポック秒のはず
+    '''
+    container_client = BLOB_SERVICE_CLIENT.create_container(AZURE_CONTAINER_NAME)
+
+    # 最大値（最新時間の値）を格納
+    buff = 0
+    # List the blobs in the container
+    blob_list = container_client.list_blobs()
+    for blob in blob_list:
+        name_len = len(blob)
+
+        # 最大値を探索（最新の画像）
+        if str.isdecimal(blob[0:name_len-4]):
+            if int(blob[0:name_len-4]) > buff:
+                buff = int(blob[0:name_len-4])
+
+    return str(buff)+".jpg"
 
 '''
 メインサービス

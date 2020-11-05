@@ -226,7 +226,7 @@ def get_trackingnumber():
         # https://porchman.azurewebsites.net/trackingnumber/get?number=<追跡番号>
 
         # 型に注意 （文字列型で扱う）
-        requested_trackingnumber = request.form["image"]
+        requested_trackingnumber = request.form["trackId"]
 
         # テーブルから検索
         result = TABLE_SERVICE.query_entities(

@@ -96,7 +96,7 @@ input{
   font-size: 24px;
 }
 
-.btn-square:hover {
+.btn-square:active {
   -webkit-transform: translateY(4px);
   transform: translateY(4px);
   border-bottom: none;

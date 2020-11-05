@@ -9,14 +9,5 @@
  <descriptionLanguages>
   <language>ja_JP</language>
  </descriptionLanguages>
- <contents>
-  <behaviorContent path=".">
-   <userRequestable/>
-   <nature>interactive</nature>
-   <triggerSentences/>
-   <loadingResponses/>
-   <autonomous/>
-   <permissions/>
-  </behaviorContent>
- </contents>
+ <contents/>
 </package>

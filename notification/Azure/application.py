@@ -25,8 +25,8 @@ LINE_CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', None)
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', None)
 
 # LINEで表示する画像のURL,コア部分のみ
-MAIN_IMAGE_PATH = os.getenv('MAIN_IMAGE', None)
-PREVIEW_IMAGE_PATH = os.getenv('PREVIEW_IMAGE', None)  # ダミー
+MAIN_IMAGE_PATH = os.getenv('MAIN_IMAGE_PATH', None)
+PREVIEW_IMAGE_PATH = os.getenv('PREVIEW_IMAGE_PATH', None)  # ダミー
 
 # Azure Storage Containerの名前，接続文字列
 AZURE_CONTAINER_NAME = os.getenv('CONTAINER_NAME', None)
@@ -113,10 +113,11 @@ def reply_image(event):
     ...
     lest_file_name = get_lest_filename_on_azure()
 
-    # 画像の送信
+    print(MAIN_IMAGE_PATH + lest_file_name)
+    # 画像の送信(originalとpreviewは同じ画像)
     image_message = ImageSendMessage(
         original_content_url=MAIN_IMAGE_PATH + lest_file_name,
-        preview_image_url=MAIN_IMAGE_PATH + lest_file_name
+        preview_image_url=PREVIEW_IMAGE_PATH + lest_file_name
     )
 
     LINE_BOT_API.reply_message(event.reply_token, image_message)
@@ -242,7 +243,7 @@ def get_trackingnumber():
             print(entry.number)
             counter = counter + 1
 
-        if len(counter) == 1:
+        if counter == 1:
             result = {
                 "result":True,
             }
@@ -261,20 +262,24 @@ def get_lest_filename_on_azure():
     '''
     Blobから最新のファイル名を取得．ファイル名はエポック秒のはず
     '''
-    container_client = BLOB_SERVICE_CLIENT.create_container(AZURE_CONTAINER_NAME)
+    container_client = BLOB_SERVICE_CLIENT.get_container_client(AZURE_CONTAINER_NAME)
 
-    # 最大値（最新時間の値）を格納
+    # 最大値を格納
     buff = 0
     # List the blobs in the container
     blob_list = container_client.list_blobs()
+
     for blob in blob_list:
-        name_len = len(blob)
+        name_len = len(blob.name)
 
-        # 最大値を探索（最新の画像）
-        if str.isdecimal(blob[0:name_len-4]):
-            if int(blob[0:name_len-4]) > buff:
-                buff = int(blob[0:name_len-4])
+        blob_name = blob.name[0:name_len-4]
 
+        # ファイル名のなかから最大値を探索（最新の画像）
+        if str.isdecimal(blob_name):
+            if int(blob_name) > buff:
+                buff = int(blob_name)
+
+    print(str(buff)+".jpg")
     return str(buff)+".jpg"
 
 '''

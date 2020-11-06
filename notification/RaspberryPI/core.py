@@ -1,3 +1,4 @@
+# -*- coding utf-8 -*-
 '''
 PepperからのHTTPリクエストをAzureへHTTPSにして転送
 '''
@@ -5,6 +6,7 @@ import sys
 import time
 import os
 import base64
+import requests
 
 from flask import Flask, abort, jsonify, make_response, request
 
@@ -29,20 +31,34 @@ def relay_trackid_request():
     try:
         # PepperからのHTTPリクエスト内の"trackId"パラメータから値を取得
         # 型に注意 （文字列型で扱う）
+        print(request)
         requested_trackingnumber = request.form["trackId"]
+        print(requested_trackingnumber)
 
         #TODO:AzureへPOSTリクエストを送信
-
-
+        url = 'https://porchman.azurewebsites.net/trackingnumber/get'
+        
+        payload = {
+            "trackId":requested_trackingnumber
+        }
+        
+        req = requests.post(url, payload)
+        
+        request_from_azure = req.json()
+        
+        
+        result_value = request_from_azure["result"]
+        
+        print(result_value)
 
         # pepperへの応答
-        if len(result) == 1:
+        if result_value:
             result = {
                 "result":True,
             }
         else:
             result = {
-                "result":False,
+                "result":True,
             }
 
     except Exception as except_var:
@@ -54,13 +70,17 @@ def relay_trackid_request():
 @app.route("/raspberrypi/photo/upload", methods=["POST"])
 def relay_photo_upload():
     '''
-    追跡番号の問い合わせをAzureへ中継
+    photoをAzureへ中継
     :return:
     '''
     try:
         # PepperからのHTTPリクエスト内の"image"パラメータから値を取得
         # 型に注意 （文字列型で扱う）
+        print(request)
+        
         img = base64.b64decode(request.form["image"].encode())
+        
+        
 
         # ファイル名（エポックタイム.jpg）
         local_file_name = str(int(time.time())) + '.jpg'

@@ -242,7 +242,7 @@ def get_trackingnumber():
             print(entry.number)
             counter = counter + 1
 
-        if len(counter) == 1:
+        if counter == 1:
             result = {
                 "result":True,
             }
@@ -261,20 +261,24 @@ def get_lest_filename_on_azure():
     '''
     Blobから最新のファイル名を取得．ファイル名はエポック秒のはず
     '''
-    container_client = BLOB_SERVICE_CLIENT.create_container(AZURE_CONTAINER_NAME)
+    container_client = BLOB_SERVICE_CLIENT.get_container_client(AZURE_CONTAINER_NAME)
 
-    # 最大値（最新時間の値）を格納
+    # 最大値を格納
     buff = 0
     # List the blobs in the container
     blob_list = container_client.list_blobs()
+
     for blob in blob_list:
-        name_len = len(blob)
+        name_len = len(blob.name)
 
-        # 最大値を探索（最新の画像）
-        if str.isdecimal(blob[0:name_len-4]):
-            if int(blob[0:name_len-4]) > buff:
-                buff = int(blob[0:name_len-4])
+        blob_name = blob.name[0:name_len-4]
 
+        # ファイル名のなかから最大値を探索（最新の画像）
+        if str.isdecimal(blob_name):
+            if int(blob_name) > buff:
+                buff = int(blob_name)
+
+    print(str(buff)+".jpg")
     return str(buff)+".jpg"
 
 '''

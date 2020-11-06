@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>配達番号入力フォーム</title>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <script src="/libs/qimessaging/1.0/qimessaging.js"></script>
+  </head>
+  <body>
+    <header>
+      <p>配達番号を入力してください</p>
+    </header>
+    <main>
+      <form id="form1" action="#">
+        <div class="cp_iptxt">
+          <input id="input_message" class="ef" type="text" placeholder="" value="">
+          <label>配達番号</label>
+          <span class="focus_line"></span>
+        </div>
+        <div class="btn-square"><input type="button" onclick="func()" value="OK"></div>
+      </form>
+    </main>
+    <script>
+      var session = new QiSession();
+      function func() {
+        var input_message = document.getElementById("input_message").value;
+        session.service("ALMemory").done(function (ALMemory) {
+          console.log("ALMemory取得成功");
+          ALMemory.raiseEvent("PepperQiMessaging/fromtablet", input_message);
+        });
+      }
+      function startSubscribe() {
+        session.service("ALMemory").done(function (ALMemory) {
+          console.log("ALMemory取得成功");
+          alert("番号が違います");
+          ALMemory.subscriber("PepperQiMessaging/totablet").done(function(subscriber) {
+            subscriber.signal.connect(toTabletHandler);
+          });
+        });
+      }
+
+    </script>
+  </body>
+</html>

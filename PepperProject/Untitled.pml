@@ -29,6 +29,7 @@
         <File name="style" src="html/style.css" />
         <File name="waiting" src="html/waiting.jpg" />
         <File name="thank" src="html/thank.jpg" />
+        <File name="black" src="html/black.jpg" />
     </Resources>
     <Topics />
     <IgnoredPaths />

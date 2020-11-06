@@ -25,8 +25,8 @@ LINE_CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', None)
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', None)
 
 # LINEで表示する画像のURL,コア部分のみ
-MAIN_IMAGE_PATH = os.getenv('MAIN_IMAGE', None)
-PREVIEW_IMAGE_PATH = os.getenv('PREVIEW_IMAGE', None)  # ダミー
+MAIN_IMAGE_PATH = os.getenv('MAIN_IMAGE_PATH', None)
+PREVIEW_IMAGE_PATH = os.getenv('PREVIEW_IMAGE_PATH', None)  # ダミー
 
 # Azure Storage Containerの名前，接続文字列
 AZURE_CONTAINER_NAME = os.getenv('CONTAINER_NAME', None)
@@ -113,10 +113,11 @@ def reply_image(event):
     ...
     lest_file_name = get_lest_filename_on_azure()
 
-    # 画像の送信
+    print(MAIN_IMAGE_PATH + lest_file_name)
+    # 画像の送信(originalとpreviewは同じ画像)
     image_message = ImageSendMessage(
         original_content_url=MAIN_IMAGE_PATH + lest_file_name,
-        preview_image_url=MAIN_IMAGE_PATH + lest_file_name
+        preview_image_url=PREVIEW_IMAGE_PATH + lest_file_name
     )
 
     LINE_BOT_API.reply_message(event.reply_token, image_message)

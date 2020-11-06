@@ -179,7 +179,10 @@ def upload_to_blob():
 
     local_file_name = str(int(time.time())) + '.jpg'
 
-    blob_client = BLOB_SERVICE_CLIENT.get_blob_client(container=AZURE_CONTAINER_NAME, blob=local_file_name)
+    blob_client = BLOB_SERVICE_CLIENT.get_blob_client(
+        container=AZURE_CONTAINER_NAME,
+        blob=local_file_name
+        )
     blob_client.upload_blob(img)
 
     return 'OK'
@@ -223,18 +226,23 @@ def get_trackingnumber():
     '''
     try:
         # クエリ文字列から検索するエリアを指定
-        # https://porchman.azurewebsites.net/trackingnumber/get?number=<追跡番号>
+        # https://porchman.azurewebsites.net/trackingnumber/get
 
         # 型に注意 （文字列型で扱う）
         requested_trackingnumber = request.form["trackId"]
 
         # テーブルから検索
-        result = TABLE_SERVICE.query_entities(
+        serch_result = TABLE_SERVICE.query_entities(
             table_name=AZURE_TABLENAME_TRAKINGNUMBER,
             filter="places eq " + requested_trackingnumber
         )
 
-        if len(result) == 1:
+        counter = 0
+        for entry in serch_result:
+            print(entry.number)
+            counter = counter + 1
+
+        if len(counter) == 1:
             result = {
                 "result":True,
             }
@@ -244,7 +252,7 @@ def get_trackingnumber():
             }
 
     except Exception as except_var:
-        print("except:"+except_var)
+        print(except_var)
         abort(500)
 
     return make_response(jsonify(result))

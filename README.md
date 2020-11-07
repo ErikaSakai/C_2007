@@ -1,5 +1,4 @@
-# ポーチマン
-# 〜一家に一台を見据えたロボット活用置き配支援サービス〜
+# ポーチマン 〜一家に一台を見据えたロボット活用置き配支援サービス〜
 
 [![IMAGE ALT TEXT HERE](https://jphacks.com/wp-content/uploads/2020/09/JPHACKS2020_ogp.jpg)](https://www.youtube.com/watch?v=G5rULR53uMk)
 

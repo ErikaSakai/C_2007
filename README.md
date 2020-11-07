@@ -29,6 +29,8 @@ Pepperには事前にユーザの顔の判別器を作成しておく．これ�
 
 #### サービス説明動画URL
 * https://youtu.be/A3rBV8bqIa0
+#### ユーザLINE操作動画URL
+* https://youtu.be/Sh77LoxUzIs
 
 ### 注力したこと（こだわり等）
 * 人型ロボットの一つとして，日本で知名度が高いPepperを使用したこと

@@ -40,6 +40,33 @@ MAIN_IMAGE_PATH = os.getenv('MAIN_IMAGE_PATH', None)
 
 USERID = os.getenv('LINE_USER_ID', None)
 
+@app.route("/callback", methods=['POST'])
+def callback():
+    '''
+    LINEサーバへWebhookリクエストをチェック(認証)
+    :return:
+    '''
+    signature = request.headers['X-Line-Signature']
+
+    body = request.get_data(as_text=True)
+    # app.logger.info("Request body: " + body)
+
+    #署名を検証
+    try:
+        HANDLER.handle(body, signature)
+
+    except LineBotApiError as except_msg:
+        print("Got exception from LINE Messaging API: %s\n" % except_msg.message)
+        for message in except_msg.error.details:
+            print("  %s: %s" % (message.property, message.message))
+        print("\n")
+
+    except InvalidSignatureError:
+        abort(400)
+
+    return 'OK'
+
+
 @app.route("/raspberrypi/trackid/post", methods=["POST"])
 def relay_trackid_request():
     '''
@@ -96,8 +123,6 @@ def relay_photo_upload():
         print(request)
         
         img = base64.b64decode(request.form["image"].encode())
-        
-        
 
         # ファイル名（エポックタイム.jpg）
         local_file_name = str(int(time.time())) + '.jpg'
@@ -127,8 +152,8 @@ def send_image_one_side(filename):
         preview_image_url=MAIN_IMAGE_PATH + filename
     )
 
-    LINE_BOT_API.push_message(USERID,image_message)
-
+    LINE_BOT_API.push_message(USERID, image_message)
+    LINE_BOT_API.push_message
     return
 
 if __name__ == "__main__":
